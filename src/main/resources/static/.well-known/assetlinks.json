@@ -1,0 +1,8 @@
+[{
+  "relation": ["delegate_permission/common.get_login_creds", "delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.orbit",
+    "sha256_cert_fingerprints": ["05:F4:39:ED:E7:3D:60:99:CF:23:60:33:D5:C5:BE:FD:55:6F:D5:F3:08:B9:ED:85:1D:0C:2C:F1:B3:32:94:24"]
+  }
+}]
