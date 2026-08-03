@@ -1,7 +1,7 @@
 package com.example.demo.controller
 
-import com.example.demo.dto.LoginRequest
-import com.example.demo.dto.RegisterOptionsResponse
+import com.example.demo.dto.LoginStartRequest
+import com.example.demo.dto.LoginVerifyRequest
 import com.example.demo.dto.RegisterRequest
 import com.example.demo.dto.RegisterVerifyRequest
 import com.example.demo.service.PasskeyService
@@ -108,5 +108,23 @@ fun registerVerify(
 
     return ResponseEntity.ok("Passkey Registered Successfully")
 }
+    @PostMapping("/login/start")
+    fun startLogin(
+        @RequestBody request: LoginStartRequest
+    ): ResponseEntity<String> {
 
+        return ResponseEntity.ok(
+            passkeyService.startAuthentication(request)
+        )
+    }
+
+    @PostMapping("/login/verify")
+    fun verifyLogin(
+        @RequestBody request: LoginVerifyRequest
+    ): ResponseEntity<String> {
+
+        return ResponseEntity.ok(
+            passkeyService.finishAuthentication(request)
+        )
+    }
 }

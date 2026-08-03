@@ -1,16 +1,21 @@
 package com.example.demo.service
 
 
+import com.example.demo.dto.LoginStartRequest
+import com.example.demo.dto.LoginVerifyRequest
 import com.example.demo.dto.RegisterRequest
 import com.example.demo.dto.RegisterVerifyRequest
 import com.example.demo.entity.Passkey
 import com.example.demo.entity.User
 import com.example.demo.repository.PasskeyRepository
 import com.example.demo.repository.UserRepository
+import com.example.demo.session.AuthenticationSession
 import com.example.demo.session.RegistrationSession
 import com.example.demo.session.RegistrationSessionService
+import com.yubico.webauthn.FinishAssertionOptions
 import com.yubico.webauthn.FinishRegistrationOptions
 import com.yubico.webauthn.RelyingParty
+import com.yubico.webauthn.StartAssertionOptions
 import com.yubico.webauthn.StartRegistrationOptions
 import com.yubico.webauthn.data.UserIdentity
 import org.springframework.stereotype.Service
@@ -21,9 +26,9 @@ import com.yubico.webauthn.data.PublicKeyCredential
 class PasskeyService(
     private val relyingParty: RelyingParty,
     private val registrationSessionService: RegistrationSessionService,
+    private val authenticationSessionService: AuthenticationSessionService,
     private val userRepository: UserRepository,
-    private val passkeyRepository : PasskeyRepository
-) {
+    private val passkeyRepository: PasskeyRepository) {
     private val secureRandom = SecureRandom()
 fun startRegistration(request: RegisterRequest): String {
 
@@ -57,8 +62,7 @@ fun startRegistration(request: RegisterRequest): String {
             .user(userIdentity)
             .build()
 
-    val creationOptions =
-        relyingParty.startRegistration(options)
+    val creationOptions = relyingParty.startRegistration(options)
 
     registrationSessionService.save(
         RegistrationSession(
@@ -104,5 +108,48 @@ fun startRegistration(request: RegisterRequest): String {
 
         passkeyRepository.save(passkey)
         registrationSessionService.remove(request.email)
+    }
+    fun startAuthentication(request: LoginStartRequest): String {
+
+        val assertionRequest =
+            relyingParty.startAssertion(
+                StartAssertionOptions.builder()
+                    .username(request.email)
+                    .build()
+            )
+
+        authenticationSessionService.save(
+            AuthenticationSession(
+                email = request.email,
+                request = assertionRequest
+            )
+        )
+
+        return assertionRequest.toCredentialsGetJson()
+    }
+    fun finishAuthentication(request: LoginVerifyRequest): String {
+
+        val session =
+            authenticationSessionService.get(request.email)
+                ?: throw RuntimeException("Authentication session not found")
+
+        val credential =
+            PublicKeyCredential.parseAssertionResponseJson(request.credential)
+
+        val finishOptions =
+            FinishAssertionOptions.builder()
+                .request(session.request)
+                .response(credential)
+                .build()
+
+        val result = relyingParty.finishAssertion(finishOptions)
+
+        if (!result.isSuccess) {
+            throw RuntimeException("Authentication failed")
+        }
+
+        authenticationSessionService.remove(request.email)
+
+        return "Login Successful"
     }
 }
