@@ -18,8 +18,8 @@ class Passkey(
     @Column(nullable = false, unique = true, length = 512)
     var credentialId: String,
 
-    @Lob
-    @Column(nullable = false)
+
+    @Column(name = "public_key_cose", columnDefinition = "BYTEA", nullable = false)
     var publicKeyCose: ByteArray,
 
     @Column(nullable = false)
