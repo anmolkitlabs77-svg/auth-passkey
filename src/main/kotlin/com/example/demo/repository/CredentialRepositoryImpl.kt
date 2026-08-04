@@ -36,29 +36,108 @@ class CredentialRepositoryImpl(
             }
             .toSet()
     }
-    override fun getUserHandleForUsername(
-        username: String?
-    ): Optional<ByteArray> {
+//    override fun getUserHandleForUsername(
+//        username: String?
+//    ): Optional<ByteArray> {
+//        return Optional.empty()
+//    }
+    override fun getUserHandleForUsername(username: String?): Optional<ByteArray> {
+
+    if (username == null) {
         return Optional.empty()
     }
 
-    override fun getUsernameForUserHandle(
-        userHandle: ByteArray?
-    ): Optional<String> {
-        return Optional.empty()
+    val user = userRepository.findByEmail(username)
+        ?: return Optional.empty()
+
+    return Optional.of(
+        ByteArray.fromBase64Url(user.userHandle)
+    )
+}
+
+//    override fun getUsernameForUserHandle(
+//        userHandle: ByteArray?
+//    ): Optional<String> {
+//        return Optional.empty()
+//    }
+
+    override fun getUsernameForUserHandle(userHandle: ByteArray?): Optional<String> {
+
+        if (userHandle == null) {
+            return Optional.empty()
+        }
+
+        val encodedHandle = userHandle.base64Url
+
+        val user = userRepository.findByUserHandle(encodedHandle)
+            ?: return Optional.empty()
+
+        return Optional.of(user.email)
     }
+
+//    override fun lookup(
+//        credentialId: ByteArray?,
+//        userHandle: ByteArray?
+//    ): Optional<RegisteredCredential> {
+//        return Optional.empty()
+//    }
 
     override fun lookup(
         credentialId: ByteArray?,
         userHandle: ByteArray?
     ): Optional<RegisteredCredential> {
-        return Optional.empty()
+
+        if (credentialId == null || userHandle == null) {
+            return Optional.empty()
+        }
+
+        val user = userRepository.findByUserHandle(userHandle.base64Url)
+            ?: return Optional.empty()
+
+        val passkey = passkeyRepository
+            .findByCredentialIdAndUser(
+                credentialId.base64Url,
+                user
+            ) ?: return Optional.empty()
+
+        return Optional.of(
+            RegisteredCredential.builder()
+                .credentialId(ByteArray.fromBase64Url(passkey.credentialId))
+                .userHandle(ByteArray.fromBase64Url(user.userHandle))
+                .publicKeyCose(ByteArray(passkey.publicKeyCose))
+                .signatureCount(passkey.signatureCount)
+                .build()
+        )
     }
 
+
+//    override fun lookupAll(
+//        credentialId: ByteArray?
+//    ): Set<RegisteredCredential> {
+//        return emptySet()
+//    }
     override fun lookupAll(
-        credentialId: ByteArray?
+    credentialId: ByteArray?
     ): Set<RegisteredCredential> {
+
+    if (credentialId == null) {
         return emptySet()
     }
 
+    val passkey = passkeyRepository.findByCredentialId(credentialId.base64Url)
+        ?: return emptySet()
+
+    val user = passkey.user
+
+    return setOf(
+        RegisteredCredential.builder()
+            .credentialId(ByteArray.fromBase64Url(passkey.credentialId))
+            .userHandle(ByteArray.fromBase64Url(user.userHandle))
+            .publicKeyCose(ByteArray(passkey.publicKeyCose))
+            .signatureCount(passkey.signatureCount)
+            .build()
+    )
 }
+
+}
+

@@ -13,5 +13,12 @@ interface PasskeyRepository : JpaRepository<Passkey, Long> {
     fun findAllByUser(
         user: User
     ): List<Passkey>
+
+
+    fun findByCredentialIdAndUser(
+        credentialId: String,
+        user: User
+    ): Passkey?
+
 }
 

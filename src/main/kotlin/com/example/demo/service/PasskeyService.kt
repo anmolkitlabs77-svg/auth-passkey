@@ -3,6 +3,7 @@ package com.example.demo.service
 
 import com.example.demo.dto.LoginStartRequest
 import com.example.demo.dto.LoginVerifyRequest
+import com.example.demo.dto.LoginVerifyResponse
 import com.example.demo.dto.RegisterRequest
 import com.example.demo.dto.RegisterVerifyRequest
 import com.example.demo.entity.Passkey
@@ -22,6 +23,8 @@ import org.springframework.stereotype.Service
 import java.security.SecureRandom
 import com.yubico.webauthn.data.ByteArray
 import com.yubico.webauthn.data.PublicKeyCredential
+import org.springframework.http.ResponseEntity
+
 @Service
 class PasskeyService(
     private val relyingParty: RelyingParty,
@@ -109,25 +112,33 @@ fun startRegistration(request: RegisterRequest): String {
         passkeyRepository.save(passkey)
         registrationSessionService.remove(request.email)
     }
-    fun startAuthentication(request: LoginStartRequest): String {
+fun startAuthentication(request: LoginStartRequest): String {
 
-        val assertionRequest =
-            relyingParty.startAssertion(
-                StartAssertionOptions.builder()
-                    .username(request.email)
-                    .build()
-            )
+    val user = userRepository.findByEmail(request.email)
+        ?: throw RuntimeException("User not found. Please register first.")
 
-        authenticationSessionService.save(
-            AuthenticationSession(
-                email = request.email,
-                request = assertionRequest
-            )
-        )
+    val passkeys = passkeyRepository.findAllByUser(user)
 
-        return assertionRequest.toCredentialsGetJson()
+    if (passkeys.isEmpty()) {
+        throw RuntimeException("No passkey registered for this account.")
     }
-    fun finishAuthentication(request: LoginVerifyRequest): String {
+
+    val assertionRequest = relyingParty.startAssertion(
+        StartAssertionOptions.builder()
+            .username(user.email)
+            .build()
+    )
+
+    authenticationSessionService.save(
+        AuthenticationSession(
+            email = user.email,
+            request = assertionRequest
+        )
+    )
+
+    return assertionRequest.toCredentialsGetJson()
+}
+    fun finishAuthentication(request: LoginVerifyRequest): LoginVerifyResponse {
 
         val session =
             authenticationSessionService.get(request.email)
@@ -150,6 +161,6 @@ fun startRegistration(request: RegisterRequest): String {
 
         authenticationSessionService.remove(request.email)
 
-        return "Login Successful"
+        return LoginVerifyResponse("Login Successful")
     }
 }
