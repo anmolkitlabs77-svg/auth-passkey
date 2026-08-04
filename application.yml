@@ -21,12 +21,9 @@
 
 spring:
   datasource:
-    url: ${SPRING_DATASOURCE_URL}
-    username: ${SPRING_DATASOURCE_USERNAME}
-    password: ${SPRING_DATASOURCE_PASSWORD}
-#    url: jdbc:postgresql://ep-lively-hat-axxynppi-pooler.c-4.us-east-2.aws.neon.tech:5432/neondb?sslmode=require
-#    username: neondb_owner
-#    password: npg_brt58EDRCwqI
+    url: jdbc:postgresql://ep-lively-hat-axxynppi-pooler.c-4.us-east-2.aws.neon.tech:5432/neondb?sslmode=require
+    username: neondb_owner
+    password: npg_brt58EDRCwqI
     driver-class-name: org.postgresql.Driver
 
   jpa:
